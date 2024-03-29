@@ -1583,7 +1583,7 @@ public class RegistrationConstants {
 	// public static final String SESSION_KEY_URL = "session_key";
 	public static final String AUTH_HASH = "hash";
 	public static final String SESSION_KEY = "sessionKey";
-	public static final String SIGNATURE = "signature";
+	public static final String SIGNATURE = "SIGNATURE";
 	public static final String ADD = "aad";
 	public static final String SALT = "salt";
 	public static final String REQ_TIME = "requesttime";
@@ -1618,6 +1618,8 @@ public class RegistrationConstants {
 	public static final String leftEyeUiAttribute = "leftEye";
 	public static final String rightEyeUiAttribute = "rightEye";
 
+	public static final String signatureUiAttribute = "signature";
+
 	public static final List<String> rightHandUiAttributes = Arrays.asList(rightIndexUiAttribute,
 			rightMiddleUiAttribute, rightRingUiAttribute, rightLittleUiAttribute);
 	public static final List<String> leftHandUiAttributes = Arrays.asList(leftLittleUiAttribute,
@@ -1628,6 +1630,7 @@ public class RegistrationConstants {
 
 	public static final String notAvailableAttribute = "unknown";
 	public static final List<String> exceptionPhotoAttributes = Arrays.asList(notAvailableAttribute);
+	public static final List<String> signatureUiAttributes = Arrays.asList(signatureUiAttribute);
 
 	public static final String ID_SCHEMA_SYNC_SERVICE = "idschema_key";
 
@@ -1907,6 +1910,7 @@ public class RegistrationConstants {
 	public static final String TICK_CIRICLE_IMG = "tick-circle.png";
 	public static final String EXCLAMATION_IMG = "exclamation.png";
 	public static final String CROSS_IMG = "cross-mark.png";
+	public static final String SIGNATURE_IMG="Signature.png";
 	// Exception Images Path
 	public static final String LEFTMIDDLE_IMG = "exceptionmarks/leftMiddle.png";
 	public static final String LEFTINDEX_IMG = "exceptionmarks/leftIndex.png";

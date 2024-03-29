@@ -278,7 +278,7 @@ public class GenericBiometricsController extends BaseController {
 
 		// get List of captured Biometrics based on nonExceptionBio Attributes
 		List<String> nonExceptionBioAttributes = isFace(modality) ? RegistrationConstants.faceUiAttributes : null;
-		if (!isFace(modality) && !isExceptionPhoto(modality)) {
+		if (!isFace(modality) && !isExceptionPhoto(modality) && !isSignature(modality)) {
 			setExceptionImg();
 
 			List<Node> checkBoxNodes = exceptionImgVBox.getChildren();
@@ -364,6 +364,9 @@ public class GenericBiometricsController extends BaseController {
 				break;
 			case EXCEPTION_PHOTO:
 				imageIconPath = RegistrationConstants.DEFAULT_EXCEPTION_IMG;
+				break;
+			case SIGNATURE:
+				imageIconPath = RegistrationConstants.SIGNATURE_IMG;
 				break;
 		}
 		return imageIconPath;
@@ -522,6 +525,10 @@ public class GenericBiometricsController extends BaseController {
 
 	private boolean  isFace(Modality currentModality) {
 		return currentModality.equals(Modality.FACE);
+	}
+
+	private boolean  isSignature(Modality currentModality) {
+		return currentModality.equals(Modality.SIGNATURE);
 	}
 
 	private List<String> getSelectedExceptionsByBioType()
@@ -1214,6 +1221,9 @@ public class GenericBiometricsController extends BaseController {
 				exceptionImagePane = getTwoThumbsSlabExceptionPane(modality);
 				break;
 			case EXCEPTION_PHOTO:
+				exceptionImagePane = null;
+				break;
+			case SIGNATURE:
 				exceptionImagePane = null;
 				break;
 		}
