@@ -1085,8 +1085,9 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
                 return this.sigPad.getSignatureIsoData();
             case SDB:
                 return this.sigPad.getSignatureDataBytes();
-            case BASE64:
+            case DAT:
                 return this.sigPad.getSignatureData().getBytes(StandardCharsets.UTF_8);
+            case IMAGE:
             default:
                 final int dpi = selectedDPI;
                 final int penWidth = selectedPenWidth;

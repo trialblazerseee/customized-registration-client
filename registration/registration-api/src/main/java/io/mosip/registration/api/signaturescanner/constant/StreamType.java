@@ -1,8 +1,9 @@
 package io.mosip.registration.api.signaturescanner.constant;
 
 public enum StreamType {
-    NONE,
+    DAT,
     ISO,
     SDB,
-    BASE64
+    NONE,
+    IMAGE
 }
