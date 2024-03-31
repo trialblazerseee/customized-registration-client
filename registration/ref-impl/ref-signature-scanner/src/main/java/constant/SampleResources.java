@@ -35,14 +35,13 @@
  */
 package constant;
 
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.imageio.ImageIO;
 
 /**
  * Utility class for resources of the signoPAD-API sample applications.

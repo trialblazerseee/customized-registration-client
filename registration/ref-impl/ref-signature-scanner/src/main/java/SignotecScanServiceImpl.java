@@ -7,18 +7,23 @@ import de.signotec.stpad.enums.SampleRate;
 import de.signotec.stpad.enums.ScrollDirection;
 import de.signotec.stpad.enums.SigPadAlign;
 import io.mosip.kernel.core.exception.ExceptionUtils;
-import io.mosip.registration.api.docscanner.dto.DocScanDevice;
 import io.mosip.registration.api.signaturescanner.SignatureService;
+import io.mosip.registration.api.signaturescanner.constant.StreamType;
 import io.mosip.registration.api.signaturescanner.dto.SignDevice;
+import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.security.SignatureException;
 import java.util.*;
 import java.util.List;
-import java.util.logging.Level;
 
 
 import static constant.SampleResources.RES_IMG_LOGO_SIGMA;
@@ -103,7 +108,14 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
 
     private static final boolean USE_CANVAS = false;
 
+    @Value("${mosip.sigmatec.signature.pad.dpi:600}")
+    private Integer selectedDPI;
 
+    @Value("${mosip.sigmatec.signature.pad.pen.width:10 px}")
+    private Integer selectedPenWidth;
+
+    @Value("${mosip.sigmatec.signature.pad.include.timestamp:false}")
+    private Boolean includeTimestamp;
 
     @Override
     public String getServiceName() {
@@ -111,14 +123,33 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
     }
 
     @Override
-    public BufferedImage scan(SignDevice signDevice, String deviceType) {
+    public void scan(SignDevice signDevice, String deviceType) throws Exception {
         openPad(signDevice);
         onButtonStartPressed();
-        return null;
     }
 
     @Override
-    public List<SignDevice> getConnectedDevices() {
+    public void retry() throws Exception {
+        retrySignature();
+    }
+
+    @Override
+    public void cancel() throws Exception {
+        onButtonStopPressed();
+    }
+
+    @Override
+    public void confirm() throws Exception {
+        onButtonOkPressed();
+    }
+
+    @Override
+    public byte[] LoadImage(StreamType streamType) throws SignatureException, IOException {
+        return saveSignatureAsStream(streamType);
+    }
+
+    @Override
+    public List<SignDevice> getConnectedDevices() throws Exception {
         List<SignDevice> signDeviceList = new ArrayList<>();
 
         try {
@@ -153,6 +184,7 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
             }
         } catch (SigPadException e) {
             LOGGER.error("unable to initialize SigPadFacade " + e.getMessage() + ExceptionUtils.getStackTrace(e));
+            throw new Exception(e.getMessage());
         }
         return signDeviceList;
     }
@@ -162,15 +194,17 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
         disconnect();
     }
 
-    public void openPad(SignDevice selectedDevice) {
+    public void openPad(SignDevice selectedDevice) throws Exception {
         SigPadDevice device = deviceMap.get(selectedDevice.getDeviceId());
         this.sigPad = new SigPadApi(device);
         this.sigPad.addSigPadListener(new SigPadAdapter() {
 
+            @SneakyThrows
             @Override
             public void errorOccurred(ErrorOccurredEvent event) {
                 event.consume(); // the signoPAD-API should not log this error
                 LOGGER.error("Error event received: " + event.cause.getMessage() + event.cause);
+                throw new Exception("Error event received: " + event.cause.getMessage());
             }
         });
 
@@ -345,13 +379,12 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
             } else {
                 this.sigPad.closeDevice();
                 LOGGER.error("This model type is not supported by this sample application!");
-                return;
+                throw new Exception("This model type is not supported by this sample application!");
             }
         } catch (Exception e) {
             LOGGER.error(e.getMessage() + "\nopenPad - openDevice : " + ExceptionUtils.getStackTrace(e));
             closePad();
-
-            return;
+            throw e;
         }
 
         if (device.isModelPenDisplay()) {
@@ -392,18 +425,21 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
         }
     }
 
+    @SneakyThrows
     @Override
     public void disconnect() {
         this.sigPad = null; // no more calls to the pad
         closePad();
     }
 
+    @SneakyThrows
     @Override
     public void handleError(SigPadException e) {
         LOGGER.error("Error  : " + e.getMessage() + ExceptionUtils.getStackTrace(e));
+        throw new Exception(e.getMessage());
     }
 
-    private void closePad() {
+    private void closePad() throws Exception {
         if (this.sigPad != null) {
             // drop signature data
             cancelSignature();
@@ -413,6 +449,7 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
                 this.sigPad.closeDevice();
             } catch (SigPadException e) {
                 LOGGER.error("Error While Closing pad : " + e.getMessage() + ExceptionUtils.getStackTrace(e));
+                throw new Exception(e.getMessage());
             }
             this.sigPad = null;
         }
@@ -421,24 +458,26 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
     /**
      * Cancels the signature procedure.
      */
-    private void cancelSignature() {
+    private void cancelSignature() throws Exception {
         try {
             this.sigPad.cancelSignature();
         } catch (SigPadException e) {
             LOGGER.error("Error While Cancelling Signature : " + e.getMessage() + ExceptionUtils.getStackTrace(e));
+            throw new Exception(e.getMessage());
         }
         finishSignature();
     }
 
-    private void finishSignature() {
+    private void finishSignature() throws Exception {
         try {
             this.sigPad.clearHotSpots();
         } catch (SigPadException e) {
             LOGGER.error("Error While finishSignature - clearHotSpots : " + e.getMessage() + ExceptionUtils.getStackTrace(e));
+            throw new Exception(e.getMessage());
         }
     }
 
-    public void onButtonStartPressed() {
+    public void onButtonStartPressed() throws Exception {
         switch (this.sigPad.getPad().getModelType()) {
             case SIGPAD_MODELTYPE_SIGMA_HID:
             case SIGPAD_MODELTYPE_SIGMA_SERIAL:
@@ -465,13 +504,14 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
 
             default:
                 LOGGER.error("This model type is not supported by this application!");
+                throw new Exception("This model type is not supported by this application!");
         }
     }
 
     /**
      * Shows the signature disclaimer
      */
-    private void showDisclaimer() {
+    private void showDisclaimer() throws Exception {
         try {
             // reset display
             clearDisplay();
@@ -558,7 +598,7 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
                 hotspotConfirm = new SigPadRectangle(349, 228, 89, 37, this.sigPad);
             } else {
                 LOGGER.error("This model type is not supported by this application!");
-                return;
+                throw new Exception("This model type is not supported by this application!");
             }
             // show the overlay and draw the text on the display
             if (overlayArea != null) {
@@ -589,13 +629,14 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
             this.sigPad.setHotSpotEventHandler(new DisclaimerHotspotListener());
         } catch (SigPadException e) {
             LOGGER.error("The disclaimer page could not be created.\nCause: " + e.getMessage() + ExceptionUtils.getStackTrace(e));
+            throw new Exception(e.getMessage());
         }
     }
 
     /**
      * Start the sign procedure.
      */
-    private void startSignature() {
+    private void startSignature() throws Exception {
         final SigPadDevice device = this.sigPad.getPad();
         SigPadRectangle[] hotspots = null;
         SigPadRectangle signingArea = null;
@@ -708,12 +749,13 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
                 signingArea = new SigPadRectangle(5, 55, areaWidth, areaHeight, this.sigPad);
             } else {
                 LOGGER.error("This model type is not supported by this application!");
-                return;
+                throw new Exception("This model type is not supported by this application!");
             }
             // draw the page on display
             this.sigPad.setImageFromStore(this.signingPageMemory);
         } catch (SigPadException e) {
             LOGGER.error("startSignature. Cause: " + e.getMessage() + ExceptionUtils.getStackTrace(e));
+            throw new Exception(e.getMessage());
         }
 
         // add hotspot for cancel, retry, confirm
@@ -725,6 +767,7 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
             }
         } catch (SigPadException e) {
             LOGGER.error("startSignature - addHotSpot Cause: " + e.getMessage() + ExceptionUtils.getStackTrace(e));
+            throw new Exception(e.getMessage());
         }
         this.sigPad.setHotSpotEventHandler(new SigningHotspotListener());
 
@@ -733,6 +776,7 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
             this.sigPad.setSignRect(signingArea);
         } catch (SigPadException e) {
             LOGGER.error("startSignature - setSignRect Cause: " + e.getMessage() + ExceptionUtils.getStackTrace(e));
+            throw new Exception(e.getMessage());
         }
 
         // start signature
@@ -740,17 +784,19 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
             this.sigPad.startSignature();
         } catch (SigPadException e) {
             LOGGER.error("startSignature - startSignature Cause: " + e.getMessage() + ExceptionUtils.getStackTrace(e));
+            throw new Exception(e.getMessage());
         }
     }
 
     /**
      * Clears all data on the display.
      */
-    private void clearDisplay() {
+    private void clearDisplay() throws Exception {
         try {
             this.sigPad.eraseDisplay();
         } catch (SigPadException e) {
             LOGGER.error("clearDisplay - eraseDisplay Cause: " + e.getMessage() + ExceptionUtils.getStackTrace(e));
+            throw new Exception(e.getMessage());
         }
     }
 
@@ -766,7 +812,7 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
      *             If an error occurred.
      */
     private int drawDisclaimerText(ImageMemory destination)
-            throws SigPadException {
+            throws Exception {
 
         final SigPadDevice device = this.sigPad.getPad();
         final String text = "With my signature, I certify that I'm excited about the signotec LCD "
@@ -834,6 +880,7 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
             this.sigPad.setTextWrapped(30, 30, textWidth, SigPadAlign.CENTER, text, destination);
         } else {
             LOGGER.error("This model type is not supported by this application!");
+            throw new Exception("This model type is not supported by this application!");
         }
 
         return lastTextY + lastTextHeight;
@@ -843,7 +890,7 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
      * Enable the native scrolling with the pen on the device if the function is supported by the
      * device and the facade.
      */
-    private void enablePenScroll() {
+    private void enablePenScroll() throws Exception {
         try {
             final SigPadDevice device = this.sigPad.getPad();
 
@@ -853,6 +900,7 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
             }
         } catch (SigPadException e) {
             LOGGER.error("enablePenScroll - setPenScrollEnabled Cause: " + e.getMessage() + ExceptionUtils.getStackTrace(e));
+            throw new Exception(e.getMessage());
         }
     }
 
@@ -866,6 +914,7 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
         private static final int HOTSPOT_ID_SCROLL_DOWN = 2;
         private static final int HOTSPOT_ID_SCROLL_UP = 3;
 
+        @SneakyThrows
         @Override
         public void pressHotSpot(int hotSpotId, boolean isPressed) {
             if (!isPressed) { // release of the button
@@ -873,7 +922,7 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
             }
         }
 
-        private void handleHotSpot(int hotSpotId) {
+        private void handleHotSpot(int hotSpotId) throws Exception {
             try {
                 switch (hotSpotId) {
 
@@ -901,6 +950,7 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
 
                     default:
                         LOGGER.error("invalid hotspot " + hotSpotId + " for disclaimer screen");
+                        throw new Exception("invalid hotspot " + hotSpotId + " for disclaimer screen");
                 }
             } catch (SigPadException e) {
                 handleError(e);
@@ -922,6 +972,7 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
         private static final int HOTSPOT_ID_RETRY = 1;
         private static final int HOTSPOT_ID_CONFIRM = 2;
 
+        @SneakyThrows
         @Override
         public void pressHotSpot(final int hotSpotId, boolean isPressed) {
             if (!isPressed) { // release of the button
@@ -929,7 +980,7 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
             }
         }
 
-        private void handleHotSpot(int hotSpotId) {
+        private void handleHotSpot(int hotSpotId) throws Exception {
             switch (hotSpotId) {
 
                 case HOTSPOT_ID_CANCEL:
@@ -971,7 +1022,7 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
      * Disable the native scrolling with the pen on the device if the function is supported by the
      * device and the facade.
      */
-    private void disablePenScroll() {
+    private void disablePenScroll() throws Exception {
         try {
             final SigPadDevice device = this.sigPad.getPad();
 
@@ -981,29 +1032,93 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
             }
         } catch (SigPadException e) {
             LOGGER.error("disablePenScroll - setPenScrollEnabled Cause: " + e.getMessage() + ExceptionUtils.getStackTrace(e));
+            throw new Exception(e.getMessage());
         }
     }
 
     /**
      * Resets the signature for retry.
      */
-    private void retrySignature() {
+    private void retrySignature() throws Exception {
         try {
             this.sigPad.retrySignature();
         } catch (SigPadException e) {
             LOGGER.error("retrySignature - retrySignature Cause: " + e.getMessage() + ExceptionUtils.getStackTrace(e));
+            throw new Exception(e.getMessage());
         }
     }
 
     /**
      * Confirms the signature data.
      */
-    private void confirmSignature() {
+    private String confirmSignature() throws Exception {
         try {
             this.sigPad.confirmSignature();
+
+            if (this.sigPad.getSignatureCount() > 0) {
+                return this.sigPad.getSignatureCount() + " points succesfully captured.";
+            } else {
+                LOGGER.error("This is not a valid Signature!");
+                finishSignature();
+                throw new Exception("This is not a valid Signature!");
+            }
         } catch (SigPadException e) {
             LOGGER.error("confirmSignature - confirmSignature Cause: " + e.getMessage() + ExceptionUtils.getStackTrace(e));
+            finishSignature();
+            throw new Exception(e.getMessage());
         }
-        finishSignature();
+    }
+
+    /**
+     * Saves the captured Signature as image to disk.
+     *
+     */
+    private byte[] saveSignatureAsStream(StreamType streamType) throws SignatureException, IOException {
+        // check if signature data was captured
+        if (this.sigPad.getSignatureCount() == 0) {
+            LOGGER.error("This is not a valid signature");
+            throw new SignatureException("This is not a valid signature");
+        }
+
+        switch (streamType) {
+            case ISO:
+                return this.sigPad.getSignatureIsoData();
+            case SDB:
+                return this.sigPad.getSignatureDataBytes();
+            case BASE64:
+                return this.sigPad.getSignatureData().getBytes(StandardCharsets.UTF_8);
+            default:
+                final int dpi = selectedDPI;
+                final int penWidth = selectedPenWidth;
+                final boolean addTimestamp = includeTimestamp;
+                this.sigPad.setFont(new Font(FONT_NAME_PAD, Font.PLAIN, 40));
+                BufferedImage bi = this.sigPad.saveSignatureAsStream(dpi, penWidth, addTimestamp, BufferedImage.TYPE_BYTE_GRAY, Color.GREEN);
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ImageIO.write(bi, "jpg", baos);
+                return baos.toByteArray();
+        }
+    }
+
+    private void onButtonStopPressed() throws Exception {
+  //      if (this.buttonRetry.isEnabled()) {
+            cancelSignature();
+  //      } else {
+  //          try {
+  //              disablePenScroll();
+  //              this.sigPad.eraseDisplay();
+   //         } catch (SigPadException e1) {
+  //              showError(e1.getMessage(), e1);
+  //          }
+  //          finishSignature();
+  //      }
+    }
+
+    private void onButtonOkPressed() throws Exception {
+    //    if (SignoPadSample.this.buttonRetry.isEnabled()) {
+            confirmSignature();
+    //    } else {
+    //        disablePenScroll();
+    //        startSignature();
+    //    }
     }
 }

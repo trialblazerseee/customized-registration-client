@@ -53,14 +53,14 @@ public class SignatureFacade {
     }
 
     @Timed
-    public BufferedImage scanDocument(@NonNull SignDevice docScanDevice, String deviceType) {
+    public BufferedImage scanDocument(@NonNull SignDevice docScanDevice, String deviceType) throws Exception {
      //   setDefaults(docScanDevice);
         LOGGER.debug("Selected device details with configuration fully set : {}", docScanDevice);
         Optional<SignatureService> result = signatureServiceList.stream()
                 .filter(s -> s.getServiceName().equals(docScanDevice.getModel())).findFirst();
 
         if(result.isPresent()) {
-            return result.get().scan(docScanDevice, deviceType);
+            result.get().scan(docScanDevice, deviceType);
         }
         return null;
     }
