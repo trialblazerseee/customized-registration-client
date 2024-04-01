@@ -33,7 +33,9 @@
  *  OF THE POSSIBILITY OF SUCH DAMAGE.
  * -----------------------------------------------------------------------------
  */
-package constant;
+package io.mosip.registration.ref.signotec.constant;
+
+import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -46,6 +48,7 @@ import java.util.logging.Logger;
 /**
  * Utility class for resources of the signoPAD-API sample applications.
  */
+@Component
 public class SampleResources {
 
     public static final String RES_IMG_BTN_CANCEL = "btn_cancel.png";

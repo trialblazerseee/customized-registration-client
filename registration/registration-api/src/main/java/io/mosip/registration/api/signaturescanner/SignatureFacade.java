@@ -52,7 +52,6 @@ public class SignatureFacade {
         return allDevices;
     }
 
-    @Timed
     public BufferedImage scanDocument(@NonNull SignDevice docScanDevice, String deviceType) throws Exception {
      //   setDefaults(docScanDevice);
         LOGGER.debug("Selected device details with configuration fully set : {}", docScanDevice);
