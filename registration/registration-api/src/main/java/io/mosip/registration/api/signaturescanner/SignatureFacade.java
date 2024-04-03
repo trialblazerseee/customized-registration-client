@@ -4,6 +4,7 @@ import io.micrometer.core.annotation.Timed;
 import io.mosip.registration.api.docscanner.DeviceType;
 import io.mosip.registration.api.docscanner.DocScannerService;
 import io.mosip.registration.api.docscanner.dto.DocScanDevice;
+import io.mosip.registration.api.signaturescanner.constant.StreamType;
 import io.mosip.registration.api.signaturescanner.dto.SignDevice;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,6 +76,38 @@ public class SignatureFacade {
         }
         return docScanDevice;
     }*/
+  public byte[] confirm(@NonNull SignDevice docScanDevice, StreamType streamType) {
+      try {
+          if(signatureServiceList == null || signatureServiceList.isEmpty())
+              return null;
+
+          Optional<SignatureService> result = signatureServiceList.stream()
+                  .filter(s -> s.getServiceName().equals(docScanDevice.getModel())).findFirst();
+
+          if(result.isPresent()) {
+              result.get().confirm();
+              return result.get().loadData(streamType);
+          }
+      } catch (Exception e) {
+          LOGGER.error("Error while stopping device {}", docScanDevice.getModel(), e);
+      }
+      return null;
+  }
+
+    public void retry(@NonNull SignDevice docScanDevice) {
+        try {
+            if(signatureServiceList == null || signatureServiceList.isEmpty())
+                return;
+
+            Optional<SignatureService> result = signatureServiceList.stream()
+                    .filter(s -> s.getServiceName().equals(docScanDevice.getModel())).findFirst();
+
+            if(result.isPresent())
+                result.get().retry();
+        } catch (Exception e) {
+            LOGGER.error("Error while stopping device {}", docScanDevice.getModel(), e);
+        }
+    }
 
     public void stopDevice(@NonNull SignDevice docScanDevice) {
         try {

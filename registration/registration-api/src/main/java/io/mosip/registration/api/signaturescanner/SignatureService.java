@@ -22,7 +22,7 @@ public interface SignatureService {
 
     void confirm() throws Exception;
 
-    byte[] LoadImage(StreamType streamType) throws SignatureException, IOException;
+    byte[] loadData(StreamType streamType) throws SignatureException, IOException;
 
     List<SignDevice> getConnectedDevices() throws Exception;
 
