@@ -253,11 +253,6 @@ public class MosipDeviceSpecificationFactory {
 		if (type.contains("face")) {
 			return SingleType.FACE.value();
 		}
-
-		if (type.contains("signature")) {
-			return SingleType.SIGNATURE_SIGN.value();
-		}
-
 		return null;
 	}
 
@@ -276,9 +271,6 @@ public class MosipDeviceSpecificationFactory {
 		}
 		if (subType.contains("face")) {
 			return "face";
-		}
-		if (subType.contains("signature")) {
-			return "signature";
 		}
 		return null;
 	}
@@ -339,11 +331,7 @@ public class MosipDeviceSpecificationFactory {
 			if (key != null && selectedDeviceInfoMap.containsKey(key))
 				return selectedDeviceInfoMap.get(key);
 
-			if(modality.equals(RegistrationConstants.SIGNATURE)) {
-
-			} else {
 				initializeDeviceMap(true);
-			}
 
 			if (key != null && selectedDeviceInfoMap.containsKey(key))
 				return selectedDeviceInfoMap.get(key);

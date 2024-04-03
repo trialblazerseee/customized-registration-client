@@ -334,9 +334,6 @@ public class BiometricFxControl extends FxControl {
 				case RegistrationConstants.FINGERPRINT_SLAB_THUMBS:
 					imageIconPath = RegistrationConstants.THUMB_IMG;
 					break;
-				case RegistrationConstants.SIGNATURE:
-					imageIconPath = RegistrationConstants.SIGNATURE_IMG;
-					break;
 			}
 		}
 		return imageIconPath;
