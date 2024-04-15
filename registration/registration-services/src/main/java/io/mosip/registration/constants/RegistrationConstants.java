@@ -275,6 +275,11 @@ public class RegistrationConstants {
 	public static final String CHECKBOX = "checkbox";
 	public static final String TEXTBOX = "textbox";
 	public static final String BUTTON = "button";
+	public static final String RETRY_BUTTON = "Retry";
+	public static final String CONFIRM_BUTTON = "Confirm";
+	public static final String RETRY_BUTTON_NAME = "retry-button";
+	public static final String CONFIRM_BUTTON_NAME = "confirm-button";
+	public static final String PROOF_OF_SIGNATURE = "POS";
 	public static final String RESIDENCE_STATUS = "residenceStatus";
 	public static final String PRIMARY = "primary";
 	public static final String SECONDARY = "secondary";

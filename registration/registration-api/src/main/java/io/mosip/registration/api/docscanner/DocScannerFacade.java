@@ -8,6 +8,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import io.mosip.registration.dto.DeviceType;
+import io.mosip.registration.dto.ScanDevice;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +18,6 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 import io.micrometer.core.annotation.Timed;
-import io.mosip.registration.api.docscanner.dto.DocScanDevice;
 
 @Component
 public class DocScannerFacade {
@@ -42,8 +43,8 @@ public class DocScannerFacade {
      * Provides all the devices including both SCANNER and CAMERA devices
      * @return
      */
-    public List<DocScanDevice> getConnectedDevices() {
-        List<DocScanDevice> allDevices = new ArrayList<>();
+    public List<ScanDevice> getConnectedDevices() {
+        List<ScanDevice> allDevices = new ArrayList<>();
         if(docScannerServiceList == null || docScannerServiceList.isEmpty()) {
             LOGGER.warn("** NO DOCUMENT SCANNER SERVICE IMPLEMENTATIONS FOUND!! **");
             return allDevices;
@@ -65,8 +66,8 @@ public class DocScannerFacade {
      * Returns only devices of CAMERA DeviceType
      * @return
      */
-    public List<DocScanDevice> getConnectedCameraDevices() {
-        List<DocScanDevice> allDevices = new ArrayList<>();
+    public List<ScanDevice> getConnectedCameraDevices() {
+        List<ScanDevice> allDevices = new ArrayList<>();
         if(docScannerServiceList == null || docScannerServiceList.isEmpty()) {
             LOGGER.warn("** NO DOCUMENT SCANNER SERVICE IMPLEMENTATIONS FOUND!! **");
             return allDevices;
@@ -83,7 +84,7 @@ public class DocScannerFacade {
     }
 
     @Timed
-    public BufferedImage scanDocument(@NonNull DocScanDevice docScanDevice, String deviceType) {
+    public BufferedImage scanDocument(@NonNull ScanDevice docScanDevice, String deviceType) {
         setDefaults(docScanDevice);
         LOGGER.debug("Selected device details with configuration fully set : {}", docScanDevice);
         Optional<DocScannerService> result = docScannerServiceList.stream()
@@ -95,7 +96,7 @@ public class DocScannerFacade {
         return null;
     }
 
-    private DocScanDevice setDefaults(@NonNull DocScanDevice docScanDevice) {
+    private ScanDevice setDefaults(@NonNull ScanDevice docScanDevice) {
         if(id != null && docScanDevice.getId() != null) {
             Optional<String> result = id.keySet().stream().filter( k -> docScanDevice.getId().matches(id.get(k)) ).findFirst();
             if(result.isPresent()) {
@@ -107,7 +108,7 @@ public class DocScannerFacade {
         return docScanDevice;
     }
 
-    public void stopDevice(@NonNull DocScanDevice docScanDevice) {
+    public void stopDevice(@NonNull ScanDevice docScanDevice) {
         try {
             if(docScannerServiceList == null || docScannerServiceList.isEmpty())
                 return;

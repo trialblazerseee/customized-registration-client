@@ -11,7 +11,8 @@ import de.signotec.stpad.enums.SigPadAlign;
 import io.mosip.kernel.core.exception.ExceptionUtils;
 import io.mosip.registration.api.signaturescanner.SignatureService;
 import io.mosip.registration.api.signaturescanner.constant.StreamType;
-import io.mosip.registration.api.signaturescanner.dto.SignDevice;
+import io.mosip.registration.dto.DeviceType;
+import io.mosip.registration.dto.ScanDevice;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -119,13 +120,15 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
     @Value("${mosip.sigmatec.signature.pad.include.timestamp:false}")
     private Boolean includeTimestamp;
 
+    private List<ScanDevice> signDeviceList ;
+
     @Override
     public String getServiceName() {
         return "Sigma HID";
     }
 
     @Override
-    public void scan(SignDevice signDevice, String deviceType) throws Exception {
+    public void scan(ScanDevice signDevice, String deviceType) throws Exception {
         openPad(signDevice);
         onButtonStartPressed();
     }
@@ -151,53 +154,56 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
     }
 
     @Override
-    public List<SignDevice> getConnectedDevices() throws Exception {
-        List<SignDevice> signDeviceList = new ArrayList<>();
-
-        try {
-            if (this.stpadNativeFacade == null) {
-                SigPadFacade facade = null;
-                facade = SigPadFacade.getInstance();
-                facade.initializeApi();
-                this.stpadNativeFacade = facade;
-            }
-
-            SigPadDevice[] pads = stpadNativeFacade.getSignatureDevices();
-
-            if (pads.length == 0) {
-
-            } else {
-                for(SigPadDevice pad : pads) {
-                    final String displayTextFormat = "%dx%d px,  %.0fx%.0f ppi";
-                    SignDevice device = new SignDevice();
-                    device.setModel(pad.getModelName());
-                    device.setSerial(pad.getSerialNumber());
-                    device.setDisplay(String.format(displayTextFormat, pad.getDisplayWidth(),
-                            pad.getDisplayHeight(), pad.getDisplayXPpi(), pad.getDisplayYPpi()));
-
-                    if (!pad.isModelPenDisplay()) {
-                        device.setFirmware(pad.getVersion());
-                    }
-                    String uuid = UUID.randomUUID().toString();
-                    device.setDeviceId(uuid);
-                    deviceMap.put(uuid, pad);
-                    signDeviceList.add(device);
+    public List<ScanDevice> getConnectedDevices() throws Exception {
+        if(signDeviceList == null || signDeviceList.isEmpty()) {
+            signDeviceList = new ArrayList<>();
+            try {
+                if (this.stpadNativeFacade == null) {
+                    SigPadFacade facade = null;
+                    facade = SigPadFacade.getInstance();
+                    facade.initializeApi();
+                    this.stpadNativeFacade = facade;
                 }
+
+                SigPadDevice[] pads = stpadNativeFacade.getSignatureDevices();
+
+                if (pads.length == 0) {
+
+                } else {
+                    for(SigPadDevice pad : pads) {
+                        final String displayTextFormat = "%dx%d px,  %.0fx%.0f ppi";
+                        ScanDevice device = new ScanDevice();
+                        device.setModel(pad.getModelName());
+                        device.setSerial(pad.getSerialNumber());
+                        device.setName(String.format(displayTextFormat, pad.getDisplayWidth(),
+                                pad.getDisplayHeight(), pad.getDisplayXPpi(), pad.getDisplayYPpi()));
+
+                        if (!pad.isModelPenDisplay()) {
+                            device.setFirmware(pad.getVersion());
+                        }
+                        String uuid = UUID.randomUUID().toString();
+                        device.setId(uuid);
+                        device.setDeviceType(DeviceType.SIGNATURE_PAD);
+                        deviceMap.put(uuid, pad);
+                        signDeviceList.add(device);
+                    }
+                }
+            } catch (SigPadException e) {
+                LOGGER.error("unable to initialize SigPadFacade " + e.getMessage() + ExceptionUtils.getStackTrace(e));
+                throw new Exception(e.getMessage());
             }
-        } catch (SigPadException e) {
-            LOGGER.error("unable to initialize SigPadFacade " + e.getMessage() + ExceptionUtils.getStackTrace(e));
-            throw new Exception(e.getMessage());
         }
+
         return signDeviceList;
     }
 
     @Override
-    public void stop(SignDevice signDevice) {
+    public void stop(ScanDevice signDevice) {
         disconnect();
     }
 
-    public void openPad(SignDevice selectedDevice) throws Exception {
-        SigPadDevice device = deviceMap.get(selectedDevice.getDeviceId());
+    public void openPad(ScanDevice selectedDevice) throws Exception {
+        SigPadDevice device = deviceMap.get(selectedDevice.getId());
         this.sigPad = new SigPadApi(device);
         this.sigPad.addSigPadListener(new SigPadAdapter() {
 
@@ -432,6 +438,8 @@ public class SignotecScanServiceImpl implements SignatureService, DisconnectList
     public void disconnect() {
         this.sigPad = null; // no more calls to the pad
         closePad();
+        if(signDeviceList != null && !signDeviceList.isEmpty())
+            signDeviceList.clear();
     }
 
     @SneakyThrows

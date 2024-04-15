@@ -1,11 +1,7 @@
 package io.mosip.registration.api.signaturescanner;
 
-import io.micrometer.core.annotation.Timed;
-import io.mosip.registration.api.docscanner.DeviceType;
-import io.mosip.registration.api.docscanner.DocScannerService;
-import io.mosip.registration.api.docscanner.dto.DocScanDevice;
 import io.mosip.registration.api.signaturescanner.constant.StreamType;
-import io.mosip.registration.api.signaturescanner.dto.SignDevice;
+import io.mosip.registration.dto.ScanDevice;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +11,6 @@ import org.springframework.stereotype.Component;
 
 import java.awt.image.BufferedImage;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Component
 public class SignatureFacade {
@@ -33,8 +28,8 @@ public class SignatureFacade {
      * Provides all the devices including both SCANNER and CAMERA devices
      * @return
      */
-    public List<SignDevice> getConnectedDevices() {
-        List<SignDevice> allDevices = new ArrayList<>();
+    public List<ScanDevice> getConnectedDevices() {
+        List<ScanDevice> allDevices = new ArrayList<>();
         if(signatureServiceList == null || signatureServiceList.isEmpty()) {
             LOGGER.warn("** NO SIGNATURE SCANNER SERVICE IMPLEMENTATIONS FOUND!! **");
             return allDevices;
@@ -50,10 +45,11 @@ public class SignatureFacade {
                 LOGGER.error("Failed to get connected device list from service " + service.getServiceName(), t);
             }
         }
+
         return allDevices;
     }
 
-    public BufferedImage scanDocument(@NonNull SignDevice docScanDevice, String deviceType) throws Exception {
+    public BufferedImage scanDocument(@NonNull ScanDevice docScanDevice, String deviceType) throws Exception {
      //   setDefaults(docScanDevice);
         LOGGER.debug("Selected device details with configuration fully set : {}", docScanDevice);
         Optional<SignatureService> result = signatureServiceList.stream()
@@ -65,7 +61,7 @@ public class SignatureFacade {
         return null;
     }
 
-  /*  private SignDevice setDefaults(@NonNull SignDevice docScanDevice) {
+  /*  private ScanDevice setDefaults(@NonNull ScanDevice docScanDevice) {
         if(model != null && docScanDevice.getModel() != null) {
             Optional<String> result = model.keySet().stream().filter( k -> docScanDevice.getModel().matches(model.get(k)) ).findFirst();
             if(result.isPresent()) {
@@ -76,7 +72,7 @@ public class SignatureFacade {
         }
         return docScanDevice;
     }*/
-  public byte[] confirm(@NonNull SignDevice docScanDevice, StreamType streamType) {
+  public byte[] confirm(@NonNull ScanDevice docScanDevice, StreamType streamType) {
       try {
           if(signatureServiceList == null || signatureServiceList.isEmpty())
               return null;
@@ -94,7 +90,7 @@ public class SignatureFacade {
       return null;
   }
 
-    public void retry(@NonNull SignDevice docScanDevice) {
+    public void retry(@NonNull ScanDevice docScanDevice) {
         try {
             if(signatureServiceList == null || signatureServiceList.isEmpty())
                 return;
@@ -109,7 +105,7 @@ public class SignatureFacade {
         }
     }
 
-    public void stopDevice(@NonNull SignDevice docScanDevice) {
+    public void stopDevice(@NonNull ScanDevice docScanDevice) {
         try {
             if(signatureServiceList == null || signatureServiceList.isEmpty())
                 return;
