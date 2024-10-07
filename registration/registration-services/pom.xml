@@ -6,12 +6,12 @@
 	<parent>
 		<groupId>io.mosip.registration</groupId>
 		<artifactId>registration-client-parent</artifactId>
-		<version>1.2.0.1</version>
+		<version>1.2.0.2</version>
 	</parent>
 	<artifactId>registration-services</artifactId>
 	<name>registration-services</name>
 	<description>Maven project of MOSIP Registration Service</description>
-	<version>1.2.0.1</version>
+	<version>1.2.0.2</version>
 
 	<dependencies>
 		<!-- Lombok -->
@@ -421,7 +421,7 @@
 		<dependency>
 			<groupId>io.mosip.kernel</groupId>
 			<artifactId>kernel-biometrics-api</artifactId>
-			<version>${mosip.core.kernel.version}</version>
+			<version>${mosip.biometric.util.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>io.mosip.kernel</groupId>
@@ -493,6 +493,10 @@
 				<exclusion>
 					<groupId>com.fasterxml.jackson.core</groupId>
 					<artifactId>jackson-databind</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.hibernate.validator</groupId>
+    				<artifactId>hibernate-validator</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
